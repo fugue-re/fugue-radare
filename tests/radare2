@@ -1,0 +1,14 @@
+#!/usr/bin/bash
+
+exec bwrap \
+	--ro-bind /tmp /tmp \
+	--ro-bind /usr /usr \
+	--ro-bind /bin /bin \
+	--ro-bind /bin/sh /bin/sh \
+	--symlink usr/lib64 /lib64 \
+	--proc /proc \
+	--dev /dev \
+	--unshare-all \
+	--die-with-parent \
+	--setenv PATH /usr/bin:/bin \
+	rizin $@ < /dev/stdin
