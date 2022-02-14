@@ -1,11 +1,11 @@
 [package]
 name = "fugue-radare"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2018"
 
 [dependencies]
 flatbuffers = "2.0"
-fugue-db = { version = "0.2", registry = "fugue" }
+fugue-db = { version = "0.2", registry = "fugue", default-features = false }
 intervals = { version = "0.1", registry = "fugue" }
 itertools = "0.10"
 md5 = "0.7"
