@@ -33,4 +33,4 @@ jobs:
         echo 'fugue = { index = "ssh://git@github.com/fugue-re/fugue-oss-registry" }' >> ~/.cargo/config.toml
 
     - name: build
-      run: cargo build --verbose
+      run: cargo build --features="fugue-db/fixed-u64" --verbose
