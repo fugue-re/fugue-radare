@@ -22,3 +22,6 @@ url = "2.2"
 [build-dependencies]
 flatc-rust = "0.2"
 flatc = { version = "0.2.1", registry = "fugue" }
+
+[dev-dependencies]
+fugue = { version = "0.2", registry = "fugue" }

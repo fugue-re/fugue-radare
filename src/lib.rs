@@ -146,8 +146,9 @@ struct SegmentInfo<'d> {
     size: u32,
     vsize: u32,
     perm: &'d str,
+    #[serde(default)]
     paddr: u64,
-    vaddr: u64,
+    vaddr: i128,
 }
 
 impl<'d> SegmentInfo<'d> {
@@ -163,8 +164,12 @@ impl<'d> SegmentInfo<'d> {
         self.perm.contains("w")
     }
 
-    fn address(&self) -> u64 {
-        self.vaddr
+    fn address(&self) -> Option<u64> {
+        if self.vaddr < 0 || self.vaddr > u64::MAX as i128 {
+            None
+        } else {
+            Some(self.vaddr as u64)
+        }
     }
 
     fn is_code(&self) -> bool {
@@ -181,7 +186,9 @@ struct Symbol<'d> {
     realname: &'d str, // imported should match name of relocation?
     #[serde(rename = "type")]
     kind: &'d str,
+    #[serde(default)]
     vaddr: u64,
+    #[serde(default)]
     paddr: u64,
     is_imported: bool,
 }
@@ -423,7 +430,7 @@ impl<'db> RadareExporter<'db> {
         let mut sbuilder = schema::SegmentBuilder::new(&mut self.builder);
 
         sbuilder.add_name(name);
-        sbuilder.add_address(seg.address());
+        sbuilder.add_address(seg.address().unwrap());
         sbuilder.add_size_(seg.vsize);
         sbuilder.add_alignment_(1); // can we get this from r2?
         sbuilder.add_address_size(self.address_size);
@@ -453,7 +460,8 @@ impl<'db> RadareExporter<'db> {
             .filter_map(|s| if s.name.is_empty() && s.size == 0 {
                 None
             } else {
-                seg_ivt.insert(Interval::from(s.vaddr..=s.vaddr+(s.vsize as u64 - 1)));
+                let vaddr = s.address()?;
+                seg_ivt.insert(Interval::from(vaddr..=vaddr+(s.vsize as u64 - 1)));
                 Some(self.export_segment(s))
             })
             .collect::<Result<Vec<_>, Error>>()?;
@@ -968,6 +976,41 @@ mod test {
         let mut ex = RadareExporter::new("./tests/tetris.efi")?;
         ex.analyse()?;
         let _ = ex.to_file("/tmp/tetris.fdb")?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_db() -> Result<(), Box<dyn std::error::Error>> {
+        use fugue::db::DatabaseImporter;
+        use fugue::ir::LanguageDB;
+        use fugue::ir::disassembly::IRBuilderArena;
+
+        let ldb = LanguageDB::from_directory_with("./tests", true)?;
+        let irb = IRBuilderArena::with_capacity(4096);
+        let mut dbi = DatabaseImporter::new("./tests/tetris.efi");
+
+        dbi.register_backend(Radare::new_rizin()?);
+        let db = dbi.import(&ldb)?;
+
+        let mut ctx = db.translators().next().unwrap().context_database();
+
+        for f in db.functions() {
+            println!("=== function: {:x} ===", f.address());
+            for b in f.blocks() {
+                println!("=== block insns: {:x} ===", b.address());
+
+                for insn in b.disassemble(&irb)? {
+                    println!("{}", insn.display());
+                }
+
+                println!("=== block pcode: {:x} ===", b.address());
+
+                for stmt in b.lift_with(&mut ctx)? {
+                    println!("{}", stmt.display());
+                }
+            }
+        }
+
         Ok(())
     }
 }
