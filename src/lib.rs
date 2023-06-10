@@ -17,8 +17,7 @@ use fugue_db::backend::{Backend, Imported};
 use fugue_db::Error as ExportError;
 
 use itertools::Itertools;
-use intervals::Interval;
-use intervals::collections::IntervalSet;
+use iset::{IntervalSet};
 use r2pipe::R2Pipe;
 
 pub use r2pipe::R2PipeSpawnOptions;
@@ -389,10 +388,10 @@ impl<'db> RadareExporter<'db> {
             let input_path = self.builder.create_string(&corebin.core.file);
             let input_md5 = self
                 .builder
-                .create_vector_direct(&*md5);
+                .create_vector(&*md5);
             let input_sha256 = self
                 .builder
-                .create_vector_direct(&*sha256);
+                .create_vector(&*sha256);
             let input_format = self
                 .builder
                 .create_string(Metadata::format(&corebin.bin.bintype)?);
@@ -425,7 +424,7 @@ impl<'db> RadareExporter<'db> {
         }
 
         let name = self.builder.create_string(seg.name);
-        let bytes = self.builder.create_vector_direct(&content);
+        let bytes = self.builder.create_vector(&content);
 
         let mut sbuilder = schema::SegmentBuilder::new(&mut self.builder);
 
@@ -461,7 +460,7 @@ impl<'db> RadareExporter<'db> {
                 None
             } else {
                 let vaddr = s.address()?;
-                seg_ivt.insert(Interval::from(vaddr..=vaddr+(s.vsize as u64 - 1)));
+                seg_ivt.insert(vaddr..vaddr+(s.vsize as u64));
                 Some(self.export_segment(s))
             })
             .collect::<Result<Vec<_>, Error>>()?;
@@ -578,7 +577,7 @@ impl<'db> RadareExporter<'db> {
             let mut blk_ibps_map =
                 HashMap::<u64, (u64, BasicBlock, Vec<u64>, Vec<u64>)>::with_capacity(blks.len());
 
-            for (i, blk) in blks.into_iter().filter(|b| seg_ivt.overlaps(b.addr..=b.addr)).enumerate() {
+            for (i, blk) in blks.into_iter().filter(|b| seg_ivt.has_overlap(b.addr..=b.addr)).enumerate() {
                 let bid = (id as u64) << 32 | (i as u64);
                 let addr = blk.addr;
 

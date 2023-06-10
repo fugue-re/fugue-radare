@@ -4,9 +4,8 @@ version = "0.2.3"
 edition = "2018"
 
 [dependencies]
-flatbuffers = "2.0"
-fugue-db = { version = "0.2", registry = "fugue", default-features = false }
-intervals = { version = "0.1", registry = "fugue" }
+fugue-db = { version = "0.2", default-features = false }
+iset = "0.2"
 itertools = "0.10"
 md5 = "0.7"
 sha2 = "0.9"
@@ -18,10 +17,10 @@ shared_memory = "0.12"
 thiserror = "1"
 which = "4"
 url = "2.2"
+flatbuffers = "23.1.21"
 
 [build-dependencies]
-flatc-rust = "0.2"
-flatc = { version = "0.2.1", registry = "fugue" }
+flatcc = "23.1.21"
 
 [dev-dependencies]
-fugue = { version = "0.2", registry = "fugue" }
+fugue = { version = "0.2",  features = ["default", "db"]}
