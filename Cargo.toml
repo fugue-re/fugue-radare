@@ -3,8 +3,15 @@ name = "fugue-radare"
 version = "0.2.3"
 edition = "2018"
 
+[features]
+default = ["bigint"]
+bigint = ["fugue-db/bigint"]
+fixed-u64 = ["fugue-db/fixed-u64"]
+fixed-u128 = ["fugue-db/fixed-u128"]
+
 [dependencies]
-fugue-db = { version = "0.2", default-features = false }
+# fugue-db = { version = "0.2", default-features = false, features = ["fixed-u64","db"]}
+fugue-db = { version = "0.2", default-features = false}
 iset = "0.2"
 itertools = "0.10"
 md5 = "0.7"
@@ -23,4 +30,4 @@ flatbuffers = "23.1.21"
 flatcc = "23.1.21"
 
 [dev-dependencies]
-fugue = { version = "0.2",  features = ["default", "db"]}
+fugue = { version = "0.2", default-features = false}

@@ -26,11 +26,5 @@ jobs:
       with:
         submodules: 'recursive'
 
-    - name: add registry
-      run: |
-        mkdir -p ~/.cargo
-        echo '[registries]' >> ~/.cargo/config.toml
-        echo 'fugue = { index = "ssh://git@github.com/fugue-re/fugue-oss-registry" }' >> ~/.cargo/config.toml
-
     - name: build
-      run: cargo build --features="fugue-db/fixed-u64" --verbose
+      run: cargo build --features="fixed-u64" --no-default-features --verbose
