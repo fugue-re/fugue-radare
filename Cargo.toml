@@ -29,4 +29,4 @@ flatbuffers = "23.1.21"
 flatcc = "23.1.21"
 
 [dev-dependencies]
-fugue = { version = "0.2", features = ["db"] }
+fugue = { version = "0.2", features = ["db"], default-features = false }
