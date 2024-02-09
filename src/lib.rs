@@ -17,7 +17,7 @@ use fugue_db::backend::{Backend, Imported};
 use fugue_db::Error as ExportError;
 
 use itertools::Itertools;
-use iset::{IntervalSet};
+use iset::IntervalSet;
 use r2pipe::R2Pipe;
 
 pub use r2pipe::R2PipeSpawnOptions;
@@ -82,13 +82,17 @@ struct MetadataBin<'d> {
 #[derive(Debug, Deserialize)]
 struct MetadataCore<'d> {
     file: &'d str,
+    #[allow(unused)]
     size: u32,
 }
 
 #[derive(Debug, Deserialize)]
 struct MetadataHashes<'d> {
+    #[allow(unused)]
     md5: &'d str,
+    #[allow(unused)]
     sha1: &'d str,
+    #[allow(unused)]
     sha256: &'d str,
 }
 
@@ -188,6 +192,7 @@ struct Symbol<'d> {
     #[serde(default)]
     vaddr: u64,
     #[serde(default)]
+    #[allow(unused)]
     paddr: u64,
     is_imported: bool,
 }
@@ -597,7 +602,7 @@ impl<'db> RadareExporter<'db> {
 
                 blk_map.insert(addr, bid);
 
-                let mut ibps = blk_ibps_map.entry(addr).or_default();
+                let ibps = blk_ibps_map.entry(addr).or_default();
                 ibps.0 = bid;
                 ibps.1 = blk;
                 ibps.3.extend(succs.into_iter());
