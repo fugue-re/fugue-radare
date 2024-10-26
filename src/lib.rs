@@ -44,6 +44,8 @@ pub enum Error {
     InvalidImportShm(shared_memory::ShmemError),
     #[error("invalid file-system path: {0}")]
     InvalidImportFile(std::io::Error),
+    #[error("invalid segment")]
+    InvalidSegment,
     #[error("coult not export to file: {0}")]
     CannotExportToFile(std::io::Error),
     #[error("coult not map file: {0}")]
@@ -411,14 +413,19 @@ impl<'db> RadareExporter<'db> {
         &mut self,
         seg: SegmentInfo,
     ) -> Result<flatbuffers::WIPOffset<schema::Segment<'db>>, Error> {
-        // TODO: remove this alloc?
-        let mut content = vec![0u8; seg.vsize as usize];
-        if seg.size > 0 {
-            assert!(seg.size <= seg.vsize);
-            content[..seg.size as usize].copy_from_slice(
-                &self.backing[seg.paddr as usize..(seg.paddr as usize + seg.size as usize)],
-            );
-        }
+        let content = if seg.size > 0 {
+            if seg.size > seg.vsize {
+                return Err(Error::InvalidSegment);
+            }
+
+            let start = seg.paddr as usize;
+            let end = start
+                .checked_add(seg.size as usize)
+                .ok_or(Error::InvalidSegment)?;
+            self.backing.get(start..end).ok_or(Error::InvalidSegment)?
+        } else {
+            &[]
+        };
 
         let name = self.builder.create_string(seg.name);
         let bytes = self.builder.create_vector(&content);
