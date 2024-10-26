@@ -223,7 +223,7 @@ struct Function<'d> {
 }
 
 pub enum Backing {
-    M(File, memmap::Mmap),
+    M(File, memmap2::Mmap),
     S(shared_memory::Shmem),
 }
 
@@ -269,7 +269,7 @@ impl<'db> RadareExporter<'db> {
             let path = path.strip_prefix("file://").unwrap_or(&path);
             let file = File::open(path).map_err(Error::InvalidImportFile)?;
 
-            let mm = unsafe { memmap::Mmap::map(&file) }.map_err(Error::CannotMapFile)?;
+            let mm = unsafe { memmap2::Mmap::map(&file) }.map_err(Error::CannotMapFile)?;
 
             Backing::M(file, mm)
         };
