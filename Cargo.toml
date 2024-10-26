@@ -25,10 +25,10 @@ shared_memory = "0.12"
 thiserror = "1"
 which = "4"
 url = "2.2"
-flatbuffers = "23.1.21"
+flatbuffers = "24.3.25"
 
 [build-dependencies]
-flatcc = "23.1.21"
+flatcc = "24.3.25"
 
 [dev-dependencies]
 fugue = { version = "0.2", features = ["db"], default-features = false }

@@ -13,25 +13,20 @@
 //! let db = dbi.import(&ldb)?;
 //! ```
 
-use fugue_db::backend::{Backend, Imported};
-use fugue_db::Error as ExportError;
-
-use itertools::Itertools;
-use iset::IntervalSet;
-use r2pipe::R2Pipe;
-
-pub use r2pipe::R2PipeSpawnOptions;
-
-use serde::Deserialize;
-
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::Write;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 
+use fugue_db::backend::{Backend, Imported};
+use fugue_db::Error as ExportError;
+use iset::IntervalSet;
+use itertools::Itertools;
+use r2pipe::R2Pipe;
+pub use r2pipe::R2PipeSpawnOptions;
+use serde::Deserialize;
 use thiserror::Error;
-
 use url::Url;
 use which::{which, which_in};
 
@@ -255,25 +250,24 @@ pub struct RadareExporter<'db> {
 }
 
 impl<'db> RadareExporter<'db> {
-    pub fn new_with<P: AsRef<str>>(
-        path: P,
-        mut config: R2PipeSpawnOptions,
-    ) -> Result<Self, Error> {
+    pub fn new_with<P: AsRef<str>>(path: P, mut config: R2PipeSpawnOptions) -> Result<Self, Error> {
         if config.exepath.is_empty() {
             config.exepath.push_str("r2");
         }
 
         let path = path.as_ref();
 
-        let backing = if let Some(id) = path.strip_prefix("shm:/").and_then(|rest| rest.rsplit_once("/").map(|(v, _)| v)) {
+        let backing = if let Some(id) = path
+            .strip_prefix("shm:/")
+            .and_then(|rest| rest.rsplit_once("/").map(|(v, _)| v))
+        {
             let sc = shared_memory::ShmemConf::new().os_id(id);
             Backing::S(sc.open().map_err(Error::InvalidImportShm)?)
         } else {
             let path = path.strip_prefix("file://").unwrap_or(&path);
             let file = File::open(path).map_err(Error::InvalidImportFile)?;
 
-            let mm = unsafe { memmap::Mmap::map(&file) }
-                .map_err(Error::CannotMapFile)?;
+            let mm = unsafe { memmap::Mmap::map(&file) }.map_err(Error::CannotMapFile)?;
 
             Backing::M(file, mm)
         };
@@ -391,12 +385,8 @@ impl<'db> RadareExporter<'db> {
 
         let meta = {
             let input_path = self.builder.create_string(&corebin.core.file);
-            let input_md5 = self
-                .builder
-                .create_vector(&*md5);
-            let input_sha256 = self
-                .builder
-                .create_vector(&*sha256);
+            let input_md5 = self.builder.create_vector(&*md5);
+            let input_sha256 = self.builder.create_vector(&*sha256);
             let input_format = self
                 .builder
                 .create_string(Metadata::format(&corebin.bin.bintype)?);
@@ -425,7 +415,9 @@ impl<'db> RadareExporter<'db> {
         let mut content = vec![0u8; seg.vsize as usize];
         if seg.size > 0 {
             assert!(seg.size <= seg.vsize);
-            content[..seg.size as usize].copy_from_slice(&self.backing[seg.paddr as usize..(seg.paddr as usize + seg.size as usize)]);
+            content[..seg.size as usize].copy_from_slice(
+                &self.backing[seg.paddr as usize..(seg.paddr as usize + seg.size as usize)],
+            );
         }
 
         let name = self.builder.create_string(seg.name);
@@ -453,7 +445,13 @@ impl<'db> RadareExporter<'db> {
 
     fn export_segments(
         &mut self,
-    ) -> Result<(Vec<flatbuffers::WIPOffset<schema::Segment<'db>>>, IntervalSet<u64>), Error> {
+    ) -> Result<
+        (
+            Vec<flatbuffers::WIPOffset<schema::Segment<'db>>>,
+            IntervalSet<u64>,
+        ),
+        Error,
+    > {
         let segsv = self.pipe.cmd("iSj")?;
         let seginfos = serde_json::from_str::<Vec<SegmentInfo>>(&segsv)
             .map_err(|e| Error::Deserialise("iSj", e))?;
@@ -461,12 +459,14 @@ impl<'db> RadareExporter<'db> {
         let mut seg_ivt = IntervalSet::new();
         let segs = seginfos
             .into_iter()
-            .filter_map(|s| if s.name.is_empty() && s.size == 0 {
-                None
-            } else {
-                let vaddr = s.address()?;
-                seg_ivt.insert(vaddr..vaddr+(s.vsize as u64));
-                Some(self.export_segment(s))
+            .filter_map(|s| {
+                if s.name.is_empty() && s.size == 0 {
+                    None
+                } else {
+                    let vaddr = s.address()?;
+                    seg_ivt.insert(vaddr..vaddr.checked_add(s.vsize as u64)?);
+                    Some(self.export_segment(s))
+                }
             })
             .collect::<Result<Vec<_>, Error>>()?;
 
@@ -582,7 +582,11 @@ impl<'db> RadareExporter<'db> {
             let mut blk_ibps_map =
                 HashMap::<u64, (u64, BasicBlock, Vec<u64>, Vec<u64>)>::with_capacity(blks.len());
 
-            for (i, blk) in blks.into_iter().filter(|b| seg_ivt.has_overlap(b.addr..=b.addr)).enumerate() {
+            for (i, blk) in blks
+                .into_iter()
+                .filter(|b| seg_ivt.has_overlap(b.addr..=b.addr))
+                .enumerate()
+            {
                 let bid = (id as u64) << 32 | (i as u64);
                 let addr = blk.addr;
 
@@ -664,8 +668,8 @@ impl<'db> RadareExporter<'db> {
             .map_err(|e| Error::Deserialise("irj", e))?;
 
         let fcnsv = self.pipe.cmd("aflj")?; // functions: previously aflqj
-        let fcns =
-            serde_json::from_str::<Vec<Function>>(&fcnsv).map_err(|e| Error::Deserialise("aflj", e))?;
+        let fcns = serde_json::from_str::<Vec<Function>>(&fcnsv)
+            .map_err(|e| Error::Deserialise("aflj", e))?;
 
         let mut n2a_map = HashMap::new();
         let mut a2n_map = HashMap::new(); // we use index as fn id for addr -> id
@@ -764,7 +768,9 @@ impl Radare {
         if let Ok(local) = f("radare2").or_else(|_| f("r2")).or_else(|_| f("rizin")) {
             Ok(local)
         } else {
-            f("radare2.exe").or_else(|_| f("r2.exe")).or_else(|_| f("rizin.exe"))
+            f("radare2.exe")
+                .or_else(|_| f("r2.exe"))
+                .or_else(|_| f("rizin.exe"))
         }
     }
 
@@ -838,14 +844,15 @@ impl Backend for Radare {
 
     fn import(&self, program: &Url) -> Result<Imported, Self::Error> {
         let program = if program.scheme() == "file" {
-            program.to_file_path()
+            program
+                .to_file_path()
                 .map_err(|_| Error::UnsupportedScheme(program.scheme().to_owned()))?
                 .to_string_lossy()
                 .to_string()
         } else if program.scheme() == "shm" {
             program.to_string()
         } else {
-            return Err(Error::UnsupportedScheme(program.scheme().to_owned()))
+            return Err(Error::UnsupportedScheme(program.scheme().to_owned()));
         };
 
         let r2_path = self.r2_path.as_ref().ok_or_else(|| Error::NotAvailable)?;
@@ -950,9 +957,7 @@ mod test {
         let mut bytes = Vec::new();
         file.read_to_end(&mut bytes)?;
 
-        let mut shm = shared_memory::ShmemConf::new()
-            .size(bytes.len())
-            .create()?;
+        let mut shm = shared_memory::ShmemConf::new().size(bytes.len()).create()?;
 
         unsafe {
             shm.as_slice_mut().copy_from_slice(&bytes);
@@ -986,8 +991,8 @@ mod test {
     #[test]
     fn test_db() -> Result<(), Box<dyn std::error::Error>> {
         use fugue::db::DatabaseImporter;
-        use fugue::ir::LanguageDB;
         use fugue::ir::disassembly::IRBuilderArena;
+        use fugue::ir::LanguageDB;
 
         let ldb = LanguageDB::from_directory_with("./tests", true)?;
         let irb = IRBuilderArena::with_capacity(4096);
