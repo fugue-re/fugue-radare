@@ -1,6 +1,6 @@
 [package]
 name = "fugue-radare"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2021"
 license = "MIT"
 description = "A binary analysis framework written in Rust"
@@ -13,22 +13,22 @@ fixed-u128 = ["fugue-db/fixed-u128"]
 
 [dependencies]
 fugue-db = { version = "0.2", default-features = false }
-iset = "0.2"
-itertools = "0.10"
+iset = "0.3"
+itertools = "0.13"
 md5 = "0.7"
-sha2 = "0.9"
-memmap = "0.7"
-r2pipe = "0.6"
+sha2 = "0.10"
+memmap2 = "0.9"
+r2pipe = "0.7"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 shared_memory = "0.12"
 thiserror = "1"
-which = "4"
-url = "2.2"
-flatbuffers = "23.1.21"
+which = "6"
+url = "2.5"
+flatbuffers = "24.3.25"
 
 [build-dependencies]
-flatcc = "23.1.21"
+flatcc = "24.3.25"
 
 [dev-dependencies]
 fugue = { version = "0.2", features = ["db"], default-features = false }
